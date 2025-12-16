@@ -575,8 +575,87 @@ int main()
 
     while (!WindowShouldClose())
     {
-        float dt = GetFrameTime();
-        engine.updateSimulation(dt);
+         float dt = GetFrameTime();
+         engine.updateSimulation(dt);
+        
+         // ====================================================================
+         // INPUT HANDLING
+         // ====================================================================
+         if (IsKeyPressed(KEY_ONE)) {
+             params.experiment_type = "FreeFall";
+             engine.setParameters(params);
+         }
+         if (IsKeyPressed(KEY_TWO)) {
+             params.experiment_type = "Pendulum";
+             engine.setParameters(params);
+         }
+         if (IsKeyPressed(KEY_THREE)) {
+             params.experiment_type = "SpringSystem";
+             engine.setParameters(params);
+         }
+         if (IsKeyPressed(KEY_FOUR)) {
+             params.experiment_type = "CollisionBalls";
+             engine.setParameters(params);
+         }
+         if (IsKeyPressed(KEY_FIVE)) {
+             params.experiment_type = "Bernoulli";
+             engine.setParameters(params);
+         }
+         if (IsKeyPressed(KEY_SIX)) {
+             params.experiment_type = "Projectile";
+             engine.setParameters(params);
+         }
+        
+         if (IsKeyPressed(KEY_SPACE)) engine.togglePause();
+         if (IsKeyPressed(KEY_S)) engine.sortDataLog();
+         if (IsKeyPressed(KEY_R)) engine.setParameters(params);
+         if (IsKeyPressed(KEY_UP)) factN = (factN < 10) ? factN + 1 : 10;
+         if (IsKeyPressed(KEY_DOWN)) factN = (factN > 0) ? factN - 1 : 0;
+        
+         // Live parameter adjustments
+         string type = params.experiment_type;
+         if (type == "CollisionBalls") {
+             auto c = engine.asCollision();
+             if (c && IsKeyDown(KEY_LEFT_CONTROL)) {
+                 if (IsKeyPressed(KEY_Q)) c->getParams().ball_masses[0] += 0.5;
+                 if (IsKeyPressed(KEY_A)) c->getParams().ball_masses[0] = (c->getParams().ball_masses[0] > 0.5) ? c->getParams().ball_masses[0] - 0.5 : 0.5;
+                 if (IsKeyPressed(KEY_W)) c->getParams().ball_masses[1] += 0.5;
+                 if (IsKeyPressed(KEY_S)) c->getParams().ball_masses[1] = (c->getParams().ball_masses[1] > 0.5) ? c->getParams().ball_masses[1] - 0.5 : 0.5;
+             }
+         }
+         else if (type == "Pendulum") {
+             auto p = engine.asPendulum();
+             if (p && IsKeyDown(KEY_LEFT_CONTROL)) {
+                 if (IsKeyPressed(KEY_G)) p->getParams().gravity += 1.0;
+                 if (IsKeyPressed(KEY_H)) p->getParams().gravity = (p->getParams().gravity > 1.0) ? p->getParams().gravity - 1.0 : 1.0;
+                 if (IsKeyPressed(KEY_L)) p->getParams().length += 0.5;
+                 if (IsKeyPressed(KEY_K)) p->getParams().length = (p->getParams().length > 0.5) ? p->getParams().length - 0.5 : 0.5;
+             }
+         }
+         else if (type == "SpringSystem") {
+             auto s = engine.asSpring();
+             if (s && IsKeyDown(KEY_LEFT_CONTROL)) {
+                 if (IsKeyPressed(KEY_K)) s->getParams().spring_constant += 10.0;
+                 if (IsKeyPressed(KEY_J)) s->getParams().spring_constant = (s->getParams().spring_constant > 10.0) ? s->getParams().spring_constant - 10.0 : 10.0;
+             }
+         }
+         else if (type == "FreeFall") {
+             auto f = engine.asFreeFall();
+             if (f && IsKeyDown(KEY_LEFT_CONTROL)) {
+                 if (IsKeyPressed(KEY_G)) f->getParams().gravity += 1.0;
+                 if (IsKeyPressed(KEY_H)) f->getParams().gravity = (f->getParams().gravity > 1.0) ? f->getParams().gravity - 1.0 : 1.0;
+             }
+         }
+         else if (type == "Projectile") {
+             auto pr = engine.asProjectile();
+             if (pr && IsKeyDown(KEY_LEFT_CONTROL)) {
+                 if (IsKeyPressed(KEY_UP)) pr->getParams().projectile_angle += 5.0;
+                 if (IsKeyPressed(KEY_DOWN)) pr->getParams().projectile_angle = (pr->getParams().projectile_angle > 5.0) ? pr->getParams().projectile_angle - 5.0 : 5.0;
+                 if (IsKeyPressed(KEY_RIGHT)) pr->getParams().projectile_speed += 2.0;
+                 if (IsKeyPressed(KEY_LEFT)) pr->getParams().projectile_speed = (pr->getParams().projectile_speed > 2.0) ? pr->getParams().projectile_speed - 2.0 : 2.0;
+             }
+         }
+
 
 
         EndDrawing();
