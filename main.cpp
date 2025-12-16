@@ -882,8 +882,103 @@ int main()
             DrawText(expName.c_str(), canvasWidth / 2 - textWidth / 2, screenHeight - 35, 16, SecondaryGold);
         }
 
+        
+        // ====================================================================
+        // SIDE PANEL
+        // ====================================================================
+        DrawRectangle(panelX, 0, panelWidth, screenHeight, LightBackground);
+        DrawLine(panelX, 0, panelX, screenHeight, PrimaryDark);
 
+        int py = 20;
+        DrawText("PHYSICS DATA", panelX + 20, py, 18, PrimaryDark);
+        py += 35;
 
+        // Current measurements
+        DrawRectangle(panelX + 15, py, panelWidth - 30, 140, WHITE);
+        DrawRectangleLines(panelX + 15, py, panelWidth - 30, 140, AccentBlue);
+        DrawText("Current Measurements:", panelX + 25, py + 10, 13, PrimaryDark);
+        py += 30;
+
+        if (engine.getExp()) {
+            auto info = engine.getExp()->getCurrentPhysicsInfo();
+            for (size_t i = 0; i < info.size() && i < 5; i++) {
+                DrawText(info[i].c_str(), panelX + 25, py, 10, TextGray);
+                py += 20;
+            }
+        }
+        py += 20;
+
+        // Max values
+        DrawText("Maximum Values:", panelX + 20, py, 14, PrimaryDark);
+        py += 25;
+        DrawRectangle(panelX + 15, py, panelWidth - 30, 60, WHITE);
+        DrawRectangleLines(panelX + 15, py, panelWidth - 30, 60, TextGray);
+        DrawText(TextFormat("Max KE: %.2f J", engine.getAnalysis().max_metrics.at("Max_KE")),
+            panelX + 25, py + 15, 12, AccentRed);
+        DrawText(TextFormat("Max Vel: %.2f m/s", engine.getAnalysis().max_metrics.at("Max_Velocity")),
+            panelX + 25, py + 35, 11, TextGray);
+        py += 75;
+
+        // Live Controls Guide
+        DrawText("LIVE CONTROLS (Hold Ctrl):", panelX + 20, py, 13, AccentGreen);
+        py += 20;
+        DrawRectangle(panelX + 15, py, panelWidth - 30, 100, WHITE);
+        DrawRectangleLines(panelX + 15, py, panelWidth - 30, 100, AccentGreen);
+
+        if (type == "CollisionBalls") {
+            DrawText("Q/A: Ball 1 Mass ±", panelX + 25, py + 10, 9, TextGray);
+            DrawText("W/S: Ball 2 Mass ±", panelX + 25, py + 25, 9, TextGray);
+        }
+        else if (type == "Pendulum") {
+            DrawText("G/H: Gravity ±", panelX + 25, py + 10, 9, TextGray);
+            DrawText("L/K: Length ±", panelX + 25, py + 25, 9, TextGray);
+        }
+        else if (type == "SpringSystem") {
+            DrawText("K/J: Spring k ±", panelX + 25, py + 10, 9, TextGray);
+        }
+        else if (type == "FreeFall") {
+            DrawText("G/H: Gravity ±", panelX + 25, py + 10, 9, TextGray);
+        }
+        else if (type == "Projectile") {
+            DrawText("↑/↓: Angle ±", panelX + 25, py + 10, 9, TextGray);
+            DrawText("→/←: Speed ±", panelX + 25, py + 25, 9, TextGray);
+            DrawText("(Reset to apply)", panelX + 25, py + 40, 8, Fade(TextGray, 0.7f));
+        }
+        py += 110;
+
+        // Data structures
+        DrawText("DATA STRUCTURES:", panelX + 20, py, 14, AccentGreen);
+        py += 25;
+        DrawRectangle(panelX + 15, py, panelWidth - 30, 120, WHITE);
+        DrawRectangleLines(panelX + 15, py, panelWidth - 30, 120, AccentGreen);
+
+        if (engine.getExp()) {
+            auto dsa = engine.getExp()->getActiveDataStructures();
+            for (size_t i = 0; i < dsa.size() && i < 6; i++) {
+                DrawText(TextFormat("✓ %s", dsa[i].c_str()), panelX + 25, py + 10 + i * 18, 9, TextGray);
+            }
+        }
+        py += 130;
+
+        // BST
+        DrawText(TextFormat("BST Nodes: %d", engine.getBST().getNodeCount()),
+            panelX + 20, py, 11, Fade(TextGray, 0.7f));
+        DrawText("(energy tracking)", panelX + 20, py + 15, 8, Fade(TextGray, 0.5f));
+        py += 40;
+
+        // Recursion demo
+        DrawText("Recursion: Factorial", panelX + 20, py, 13, PrimaryDark);
+        py += 20;
+        DrawRectangle(panelX + 15, py, panelWidth - 30, 45, WHITE);
+        DrawRectangleLines(panelX + 15, py, panelWidth - 30, 45, TextGray);
+        DrawText(TextFormat("%d! = %lld", factN, engine.factorial(factN)),
+            panelX + 25, py + 12, 15, AccentBlue);
+        py += 60;
+
+        // Time
+        DrawText(TextFormat("Time: %.2f s",
+            engine.getDataLog().empty() ? 0 : engine.getDataLog().back().time),
+            panelX + 20, py, 10, Fade(TextGray, 0.7f));
 
         EndDrawing();
     }
