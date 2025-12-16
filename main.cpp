@@ -552,3 +552,36 @@ public:
 };
 
 
+
+
+
+
+
+
+// ============================================================================
+// MAIN LOOP
+// ============================================================================
+int main()
+{
+    InitWindow(screenWidth, screenHeight, "Physics Sandbox - Enhanced with Controls");
+    SetTargetFPS(60);
+
+    PhysicsEngine engine;
+    ExperimentParameters params;
+    params.experiment_type = "CollisionBalls";
+    engine.setParameters(params);
+
+    int factN = 5;
+
+    while (!WindowShouldClose())
+    {
+        float dt = GetFrameTime();
+        engine.updateSimulation(dt);
+
+
+        EndDrawing();
+    }
+
+    CloseWindow();
+    return 0;
+}
