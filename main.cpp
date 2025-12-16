@@ -71,3 +71,142 @@ struct ExperimentParameters {
     double projectile_speed = 25.0;
     double projectile_angle = 45.0;
 };
+
+
+// ============================================================================
+// GRAPH (for collision tracking)
+// ============================================================================
+struct GraphNode
+{
+    int ball_id;
+    int collision_count = 0;
+    vector<int> neighbors;
+};
+
+class CollisionGraph
+{
+private:
+    vector<GraphNode> nodes;
+
+public:
+    void setup(int count)
+    {
+        nodes.clear();
+        for (int i = 0; i < count; ++i)
+            nodes.push_back({i, 0, {}});
+    }
+
+    void registerCollision(int id1, int id2)
+    {
+        if (id1 == id2)
+            return;
+
+        bool connected = false;
+        for (int n : nodes[id1].neighbors)
+        {
+            if (n == id2)
+            {
+                connected = true;
+                break;
+            }
+        }
+
+        if (!connected)
+        {
+            nodes[id1].neighbors.push_back(id2);
+            nodes[id2].neighbors.push_back(id1);
+        }
+
+        nodes[id1].collision_count++;
+        nodes[id2].collision_count++;
+    }
+
+    const vector<GraphNode> &getNodes() const { return nodes; }
+};
+
+// ============================================================================
+// BST (Binary Search Tree for energy tracking)
+// ============================================================================
+struct BSTNode
+{
+    double key, value_time;
+    BSTNode *left;
+    BSTNode *right;
+    BSTNode(double k, double t) : key(k), value_time(t), left(nullptr), right(nullptr) {}
+};
+
+class EnergyBST
+{
+private:
+    BSTNode *root;
+    int node_count;
+
+    BSTNode *insertRecursive(BSTNode *node, double key, double time)
+    {
+        if (!node)
+        {
+            node_count++;
+            return new BSTNode(key, time);
+        }
+        if (key < node->key)
+            node->left = insertRecursive(node->left, key, time);
+        else if (key > node->key)
+            node->right = insertRecursive(node->right, key, time);
+        return node;
+    }
+
+    void destroyRecursive(BSTNode *node)
+    {
+        if (node)
+        {
+            destroyRecursive(node->left);
+            destroyRecursive(node->right);
+            delete node;
+        }
+    }
+
+public:
+    EnergyBST() : root(nullptr), node_count(0) {}
+    ~EnergyBST() { destroyRecursive(root); }
+
+    void insert(double key, double time)
+    {
+        root = insertRecursive(root, key, time);
+    }
+
+    void clear()
+    {
+        destroyRecursive(root);
+        root = nullptr;
+        node_count = 0;
+    }
+
+    int getNodeCount() const { return node_count; }
+};
+
+// ============================================================================
+// HASHMAP (for analysis data)
+// ============================================================================
+class AnalysisData
+{
+public:
+    unordered_map<string, double> max_metrics;
+
+    AnalysisData()
+    {
+        max_metrics["Max_KE"] = 0.0;
+        max_metrics["Max_Velocity"] = 0.0;
+    }
+
+    void updateMaxKE(double ke)
+    {
+        if (ke > max_metrics["Max_KE"])
+            max_metrics["Max_KE"] = ke;
+    }
+
+    void updateMaxVelocity(double v)
+    {
+        if (v > max_metrics["Max_Velocity"])
+            max_metrics["Max_Velocity"] = v;
+    }
+};
