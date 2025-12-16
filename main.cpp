@@ -210,3 +210,160 @@ public:
             max_metrics["Max_Velocity"] = v;
     }
 };
+
+// ============================================================================
+// PHYSICS UTILITIES
+// ============================================================================
+inline double degToRad(double deg) {
+    return deg * 3.14159265358979323846 / 180.0;
+}
+
+inline double calcKE(double m, double vx, double vy) {
+    return m > 0 ? 0.5 * m * (vx * vx + vy * vy) : 0;
+}
+
+inline double calcPE(double m, double g, double h) {
+    return m > 0 ? m * g * h : 0;
+}
+
+// ============================================================================
+// EXPERIMENT INTERFACE
+// ============================================================================
+class IExperiment {
+public:
+    virtual ~IExperiment() = default;
+    virtual void setup(const ExperimentParameters& params) = 0;
+    virtual void update(double dt) = 0;
+    virtual double time() const = 0;
+    virtual const vector<DataPoint>& dataLog() const = 0;
+    virtual vector<string> getActiveDataStructures() const = 0;
+    virtual vector<string> getCurrentPhysicsInfo() const = 0;
+    virtual string getExperimentName() const = 0;
+};
+
+// ============================================================================
+// FREEFALL EXPERIMENT
+// ============================================================================
+class FreeFall : public IExperiment {
+private:
+    ExperimentParameters p;
+    double t{ 0 };
+    static const int count = 3;
+    double h[count], v[count];
+    vector<DataPoint> log;
+
+public:
+    void setup(const ExperimentParameters& params) override {
+        p = params;
+        t = 0;
+        log.clear();
+        for (int i = 0; i < count; ++i) {
+            h[i] = 30.0 - i * 5.0;
+            v[i] = 0;
+        }
+    }
+
+    void update(double dt) override {
+        if (dt <= 0) return;
+        t += dt;
+
+        for (int i = 0; i < count; ++i) {
+            double a = p.gravity - p.air_resistance * v[i];
+            v[i] += a * dt;
+            h[i] -= v[i] * dt;
+
+            if (h[i] < 0) {
+                h[i] = 0;
+                v[i] = -v[i] * 0.75;
+            }
+
+            if (i == 0) {
+                double ke = calcKE(p.mass, 0, v[i]);
+                double pe = calcPE(p.mass, p.gravity, h[i]);
+                log.push_back({ t, 0, h[i], 0, v[i], ke, pe });
+            }
+        }
+    }
+
+    vector<string> getActiveDataStructures() const override {
+        return { "Array (h[3], v[3])", "Vector (DataPoints)", "BST (Energy)", "HashMap (Max)" };
+    }
+
+    vector<string> getCurrentPhysicsInfo() const override {
+        return {
+            "Mass: " + std::to_string(p.mass) + " kg",
+            "Gravity: " + std::to_string(p.gravity) + " m/s²",
+            "Height: " + std::to_string(h[0]) + " m",
+            "Velocity: " + std::to_string(v[0]) + " m/s",
+            "Air Resist: " + std::to_string(p.air_resistance)
+        };
+    }
+
+    string getExperimentName() const override { return "Free Fall - Three Balls"; }
+    double time() const override { return t; }
+    const vector<DataPoint>& dataLog() const override { return log; }
+    int getCount() const { return count; }
+    double getHeight(int i) const { return (i >= 0 && i < count) ? h[i] : 0; }
+    double getVelocity(int i) const { return (i >= 0 && i < count) ? v[i] : 0; }
+    ExperimentParameters& getParams() { return p; }
+};
+
+// ============================================================================
+// PENDULUM EXPERIMENT
+// ============================================================================
+class Pendulum : public IExperiment {
+private:
+    ExperimentParameters p;
+    double t{ 0 };
+    double angle{ 0 }, w{ 0 };
+    vector<DataPoint> log;
+
+public:
+    void setup(const ExperimentParameters& params) override {
+        p = params;
+        t = 0;
+        angle = degToRad(p.initial_angle);
+        w = 0;
+        log.clear();
+    }
+
+    void update(double dt) override {
+        if (dt <= 0) return;
+        t += dt;
+
+        double a = -(p.gravity / p.length) * sin(angle) - p.air_resistance * w;
+        w += a * dt;
+        angle += w * dt;
+
+        double bx = p.length * sin(angle);
+        double by = p.length * cos(angle);
+        double vx = w * p.length * cos(angle);
+        double vy = -w * p.length * sin(angle);
+
+        double ke = calcKE(p.mass, vx, vy);
+        double pe = calcPE(p.mass, p.gravity, p.length - p.length * cos(angle));
+
+        log.push_back({ t, bx, by, vx, vy, ke, pe });
+    }
+
+    vector<string> getActiveDataStructures() const override {
+        return { "Variables (angle, w)", "Vector (DataPoints)", "BST (Energy)", "HashMap (Max)" };
+    }
+
+    vector<string> getCurrentPhysicsInfo() const override {
+        return {
+            "Mass: " + std::to_string(p.mass) + " kg",
+            "Length: " + std::to_string(p.length) + " m",
+            "Angle: " + std::to_string(angle * 180 / 3.14159) + "°",
+            "Angular Vel: " + std::to_string(w) + " rad/s",
+            "Gravity: " + std::to_string(p.gravity) + " m/s²"
+        };
+    }
+
+    string getExperimentName() const override { return "Simple Pendulum"; }
+    double time() const override { return t; }
+    const vector<DataPoint>& dataLog() const override { return log; }
+    double getBobX() const { return p.length * sin(angle); }
+    double getBobY() const { return p.length * cos(angle); }
+    ExperimentParameters& getParams() { return p; }
+};
