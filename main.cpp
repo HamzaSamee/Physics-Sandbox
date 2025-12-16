@@ -657,6 +657,233 @@ int main()
          }
 
 
+        
+        // ====================================================================
+        // RENDERING
+        // ====================================================================
+        BeginDrawing();
+        ClearBackground(LightBackground);
+
+        // Canvas area
+        DrawRectangle(0, 0, canvasWidth, screenHeight, RAYWHITE);
+        DrawRectangleLines(0, 0, canvasWidth, screenHeight, PrimaryDark);
+        DrawText("Keys: 1-6 Switch | SPACE-Pause | R-Reset | S-Sort | Ctrl+Keys for live adjustments", 10, 8, 10, TextGray);
+
+        // Pause indicator
+        if (engine.isPaused())
+        {
+            DrawRectangle(canvasWidth / 2 - 80, 40, 160, 40, Fade(AccentRed, 0.8f));
+            DrawText("|| PAUSED ||", canvasWidth / 2 - 55, 50, 20, WHITE);
+        }
+
+        // ====================================================================
+        // EXPERIMENT RENDERING
+        // ====================================================================
+        if (type == "FreeFall")
+        {
+            auto f = engine.asFreeFall();
+            if (f)
+            {
+                DrawRectangle(50, 600, 700, 10, PrimaryDark);
+                DrawLine(100, 50, 100, 600, TextGray);
+
+                for (int i = 0; i <= 10; i++)
+                {
+                    DrawLine(90, 600 - i * 50, 100, 600 - i * 50, TextGray);
+                    DrawText(TextFormat("%dm", i * 3), 60, 595 - i * 50, 10, TextGray);
+                }
+
+                for (int i = 0; i < f->getCount(); i++)
+                {
+                    float x = 250 + i * 180;
+                    float y = 600 - (float)f->getHeight(i) * 15;
+                    DrawCircle(x, y, 18, AccentRed);
+
+                    // Ball labels
+                    DrawText(TextFormat("Ball %d", i + 1), x - 20, y - 35, 10, PrimaryDark);
+                    DrawText(TextFormat("h=%.1fm", f->getHeight(i)), x - 25, y + 25, 9, TextGray);
+                    DrawText(TextFormat("v=%.1f", f->getVelocity(i)), x - 22, y + 38, 8, Fade(TextGray, 0.7f));
+                }
+            }
+        }
+        else if (type == "Pendulum")
+        {
+            auto p = engine.asPendulum();
+            if (p)
+            {
+                float px = canvasWidth / 2, py = 80;
+                float bx = px + (float)p->getBobX() * 200;
+                float by = py + (float)p->getBobY() * 200;
+
+                DrawLineEx({px - 60, py}, {px + 60, py}, 5, PrimaryDark);
+                DrawLineEx({px, py}, {bx, by}, 3, TextGray);
+                DrawCircle(bx, by, 28, AccentRed);
+                DrawCircle(px, py, 6, PrimaryDark);
+
+                // Bob label
+                DrawText(TextFormat("m=%.1fkg", p->getParams().mass), bx - 30, by + 35, 10, PrimaryDark);
+                DrawText(TextFormat("L=%.1fm", p->getParams().length), px + 10, py + 10, 9, TextGray);
+            }
+        }
+        else if (type == "SpringSystem")
+        {
+            auto s = engine.asSpring();
+            if (s)
+            {
+                float ax = canvasWidth / 2, ay = 120;
+                float len = 120 + (float)s->getDisplacement() * 90;
+
+                DrawRectangle(ax - 70, ay - 12, 140, 12, PrimaryDark);
+                DrawSpring({ax, ay}, {ax, ay + len}, 14, 18, TextGray);
+                DrawRectangle(ax - 30, ay + len, 60, 60, AccentBlue);
+
+                // Mass label
+                DrawText(TextFormat("m=%.1fkg", s->getParams().mass), ax - 25, ay + len + 20, 10, WHITE);
+                DrawText(TextFormat("x=%.2fm", s->getDisplacement()), ax - 25, ay + len + 70, 10, PrimaryDark);
+                DrawText(TextFormat("k=%.0f N/m", s->getParams().spring_constant), ax - 35, ay - 30, 10, TextGray);
+            }
+        }
+        else if (type == "CollisionBalls")
+        {
+            auto c = engine.asCollision();
+            if (c)
+            {
+                DrawRectangle(50, 380, 750, 8, PrimaryDark);
+
+                for (int i = 0; i < c->getCount(); i++)
+                {
+                    const Ball *b = &c->getBalls()[i];
+                    float x = 120 + (float)b->x * 45;
+                    float y = 350 - (float)b->radius * 45;
+                    DrawCircle(x, y, (float)b->radius * 45, i == 0 ? AccentBlue : AccentRed);
+                    DrawLineEx({x, y}, {x + (float)b->vx * 22, y}, 2.5f, PrimaryDark);
+
+                    // Ball labels
+                    DrawText(TextFormat("B%d", i + 1), x - 8, y - 5, 12, WHITE);
+                    DrawText(TextFormat("m=%.1f", b->mass), x - 20, y + (float)b->radius * 45 + 8, 9, PrimaryDark);
+                    DrawText(TextFormat("v=%.1f", b->vx), x - 18, y + (float)b->radius * 45 + 22, 8, TextGray);
+                }
+
+                const auto &nodes = c->getGraph().getNodes();
+                DrawText("Collision Graph", 100, 500, 14, PrimaryDark);
+
+                for (size_t i = 0; i < nodes.size(); i++)
+                {
+                    int cx = 180 + i * 200;
+                    DrawCircle(cx, 550, 22, nodes[i].collision_count > 0 ? AccentRed : Fade(TextGray, 0.5f));
+                    DrawText(TextFormat("Ball %d", (int)i + 1), cx - 18, 580, 11, TextGray);
+                    DrawText(TextFormat("Hits: %d", nodes[i].collision_count), cx - 20, 600, 10, PrimaryDark);
+
+                    if (nodes.size() > 1 && i == 0 && nodes[0].collision_count > 0)
+                        DrawLineEx({(float)cx + 22, 550}, {(float)(cx + 200 - 22), 550}, 3, SecondaryGold);
+                }
+            }
+        }
+        else if (type == "Bernoulli")
+        {
+            auto b = engine.asBernoulli();
+            if (b)
+            {
+                float sx = 120, sy = 300, len = 550;
+                float d1 = 90, d2 = 35;
+
+                DrawRectangle(sx, sy - d1 / 2, len / 2, d1, Fade(AccentBlue, 0.2f));
+                DrawRectangle(sx + len / 2, sy - d2 / 2, len / 2, d2, Fade(AccentRed, 0.2f));
+                DrawRectangleLines(sx, sy - d1 / 2, len / 2, d1, AccentBlue);
+                DrawRectangleLines(sx + len / 2, sy - d2 / 2, len / 2, d2, AccentRed);
+
+                DrawTriangle({sx + len / 2, sy - d1 / 2}, {sx + len / 2, sy - d2 / 2},
+                             {sx + len / 2 + 25, sy - d2 / 2}, Fade(TextGray, 0.4f));
+                DrawTriangle({sx + len / 2, sy + d1 / 2}, {sx + len / 2, sy + d2 / 2},
+                             {sx + len / 2 + 25, sy + d2 / 2}, Fade(TextGray, 0.4f));
+
+                const auto &pts = b->getParticles();
+                for (const auto &pt : pts)
+                {
+                    float px = sx + (float)pt.x * 40;
+                    float py = sy + (float)(pt.y - 5) * 8;
+                    Color pc = pt.sec == 0 ? AccentBlue : AccentRed;
+                    DrawCircle(px, py, 4, pc);
+                    DrawLineEx({px, py}, {px - (float)pt.vx * 5, py}, 2, Fade(pc, 0.4f));
+                }
+
+                DrawText(TextFormat("V1: %.2f m/s", b->getV1()), sx + 60, sy - 60, 13, AccentBlue);
+                DrawText(TextFormat("P1: %.1f kPa", b->getP1() / 1000), sx + 60, sy - 45, 11, TextGray);
+                DrawText(TextFormat("V2: %.2f m/s", b->getV2()), sx + len / 2 + 60, sy - 40, 13, AccentRed);
+                DrawText(TextFormat("P2: %.1f kPa", b->getP2() / 1000), sx + len / 2 + 60, sy - 25, 11, TextGray);
+                DrawText("Bernoulli: P + 1/2pv² = const", sx + 100, sy + 80, 12, PrimaryDark);
+            }
+        }
+        else if (type == "Projectile")
+        {
+            auto proj = engine.asProjectile();
+            if (proj)
+            {
+                DrawRectangle(50, 550, 750, 5, PrimaryDark);
+
+                float scaleX = 40.0f;
+                float scaleY = 40.0f;
+                float offsetX = 100.0f;
+                float offsetY = 550.0f;
+
+                const auto &traj = proj->getTrajectory();
+                for (size_t i = 1; i < traj.size(); i++)
+                {
+                    Vector2 p1 = {offsetX + traj[i - 1].x * scaleX, offsetY - traj[i - 1].y * scaleY};
+                    Vector2 p2 = {offsetX + traj[i].x * scaleX, offsetY - traj[i].y * scaleY};
+                    DrawLineEx(p1, p2, 2, Fade(AccentBlue, 0.4f));
+                }
+
+                if (!proj->hasLanded())
+                {
+                    float px = offsetX + (float)proj->getX() * scaleX;
+                    float py = offsetY - (float)proj->getY() * scaleY;
+                    DrawCircle(px, py, 12, AccentRed);
+
+                    const auto &log = proj->dataLog();
+                    if (!log.empty())
+                    {
+                        float vx = (float)log.back().velocity_x * 3;
+                        float vy = -(float)log.back().velocity_y * 3;
+                        DrawLineEx({px, py}, {px + vx, py + vy}, 2.5f, SecondaryGold);
+
+                        // Projectile label
+                        DrawText(TextFormat("h=%.1fm", proj->getY()), px + 15, py - 10, 9, PrimaryDark);
+                        DrawText(TextFormat("v=%.1f", sqrt(log.back().velocity_x * log.back().velocity_x + log.back().velocity_y * log.back().velocity_y)), px + 15, py + 2, 8, TextGray);
+                    }
+                }
+                else
+                {
+                    float px = offsetX + (float)proj->getX() * scaleX;
+                    DrawCircle(px, offsetY, 12, Fade(AccentRed, 0.5f));
+                    DrawText("LANDED", px - 25, offsetY + 20, 12, AccentGreen);
+                    DrawText(TextFormat("Range: %.1fm", proj->getX()), px - 35, offsetY + 35, 10, PrimaryDark);
+                }
+
+                DrawCircle(offsetX, offsetY, 8, PrimaryDark);
+                DrawText("Launch", offsetX - 20, offsetY + 15, 10, TextGray);
+
+                for (int i = 0; i <= 15; i++)
+                {
+                    float gx = offsetX + i * scaleX * 2;
+                    DrawLine(gx, offsetY, gx, offsetY + 5, Fade(TextGray, 0.3f));
+                    if (i % 5 == 0)
+                        DrawText(TextFormat("%dm", i * 2), gx - 10, offsetY + 10, 9, TextGray);
+                }
+            }
+        }
+
+        // Experiment heading at bottom
+        if (engine.getExp())
+        {
+            string expName = engine.getExp()->getExperimentName();
+            int textWidth = MeasureText(expName.c_str(), 16);
+            DrawRectangle(canvasWidth / 2 - textWidth / 2 - 20, screenHeight - 45, textWidth + 40, 35, Fade(PrimaryDark, 0.9f));
+            DrawText(expName.c_str(), canvasWidth / 2 - textWidth / 2, screenHeight - 35, 16, SecondaryGold);
+        }
+
+
+
 
         EndDrawing();
     }
